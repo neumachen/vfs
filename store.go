@@ -3,7 +3,6 @@ package vfs
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -76,18 +75,9 @@ func LoadFiles(folder string) (Store, error) {
 	return s, nil
 }
 
-// AllowedFiles ...
-var AllowedFiles = map[string]bool{".json": true, ".sql": true, ".html": true}
-
 // loadFile ...
 func loadFile(s *store, file *os.File) error {
 	base := filepath.Base(file.Name())
-	ext := filepath.Ext(base)
-	if !AllowedFiles[ext] {
-		return errors.New(
-			"not a recognized file type",
-		)
-	}
 
 	// store the file in the files using the base name only (not
 	// path/filename)
