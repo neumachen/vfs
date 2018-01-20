@@ -29,12 +29,56 @@ func (s *store) Get(file string) (string, error) {
 	return f, nil
 }
 
-// LoadFiles loads the file(s) in a given folder from the given string that is
-// passed. If the path supplied is a directory it will walk through the entire
-// directory and load the json files into the *Store.  If the file is not a
-// directory it will simply load that single file into the Store. If an error
-// occurs anytime during the process an error is returned.
-func LoadFiles(folder string) (Store, error) {
+// LoadFolders ...
+func LoadFolders(folders ...string) (Store, error) {
+	s := &store{files: make(map[string]string)}
+
+	for _, folder := range folders {
+		fdir, err := os.Open(folder)
+		if err != nil {
+			return nil, err
+		}
+		defer fdir.Close()
+
+		finfo, err := fdir.Stat()
+
+		if err != nil {
+			return nil, err
+		}
+
+		switch mode := finfo.Mode(); {
+		case mode.IsDir():
+			files, err := lsFiles(fdir.Name())
+			if err != nil {
+				return nil, err
+			}
+			for _, f := range files {
+				file, err := os.Open(f)
+				if err != nil {
+					return nil, err
+				}
+				err = loadFile(s, file)
+				defer file.Close()
+				if err != nil {
+					return nil, err
+				}
+			}
+		case mode.IsRegular():
+			err := loadFile(s, fdir)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return s, nil
+}
+
+// LoadFolder loads the file(s) in a given folder from the given string that
+// is passed. If the path supplied is a directory it will walk through the
+// entire directory and load the json files into the *Store.  If the file is
+// not a directory it will simply load that single file into the Store. If an
+// error occurs anytime during the process an error is returned.
+func LoadFolder(folder string) (Store, error) {
 	fdir, err := os.Open(folder)
 	if err != nil {
 		return nil, err
