@@ -46,28 +46,9 @@ func LoadFolders(folders ...string) (Store, error) {
 			return nil, err
 		}
 
-		switch mode := finfo.Mode(); {
-		case mode.IsDir():
-			files, err := lsFiles(fdir.Name())
-			if err != nil {
-				return nil, err
-			}
-			for _, f := range files {
-				file, err := os.Open(f)
-				if err != nil {
-					return nil, err
-				}
-				err = loadFile(s, file)
-				defer file.Close()
-				if err != nil {
-					return nil, err
-				}
-			}
-		case mode.IsRegular():
-			err := loadFile(s, fdir)
-			if err != nil {
-				return nil, err
-			}
+		err = loadFolder(fdir, finfo, s)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return s, nil
@@ -93,30 +74,38 @@ func LoadFolder(folder string) (Store, error) {
 
 	s := &store{files: make(map[string]string)}
 
+	err = loadFolder(fdir, finfo, s)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func loadFolder(fdir *os.File, finfo os.FileInfo, s *store) error {
 	switch mode := finfo.Mode(); {
 	case mode.IsDir():
 		files, err := lsFiles(fdir.Name())
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for _, f := range files {
 			file, err := os.Open(f)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			err = loadFile(s, file)
 			defer file.Close()
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 	case mode.IsRegular():
 		err := loadFile(s, fdir)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return s, nil
+	return nil
 }
 
 // loadFile ...
